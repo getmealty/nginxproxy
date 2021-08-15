@@ -1,0 +1,42 @@
+version: "2"
+
+volumes:
+  production_nginx_vhost: {}
+  production_nginx_html: {}
+  production_nginx_certs: {}
+  production_nginx_acme: {}
+  production_nginx_logs: {}
+
+services:
+  nginxproxy:
+    build:
+      context: .
+      dockerfile: ./compose/production/Dockerfile
+    image: nginxproxy_production_nginxproxy
+    container_name: nginxproxy_production_nginxproxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - production_nginx_logs:/var/log/nginx/
+      - production_nginx_certs:/etc/nginx/certs
+      - production_nginx_vhost:/etc/nginx/vhost.d
+      - production_nginx_html:/usr/share/nginx/html
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    networks:
+      - nginxproxy_production_network
+
+  sslgenerator:
+    image: nginxproxy/acme-companion:2.1.0
+    container_name: nginxproxy_production_acmecompanion
+    volumes_from:
+      - nginxproxy
+    volumes:
+      - production_nginx_acme:/etc/acme.sh
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - nginxproxy_production_network
+
+networks:
+  nginxproxy_production_network:
+    name: nginxproxy_production_network
